@@ -1,2 +1,2 @@
 # Oregon-Trail
-Creating a multiplayer Oregon Trail game using Java.
+Creating a multiplayer Oregon Trail game using C.
