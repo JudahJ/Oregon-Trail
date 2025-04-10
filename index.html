@@ -1,20 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mini Oregon Trail</title>
+  <style>
+    body { font-family: 'Courier New', monospace; background-color: #f4f4f4; padding: 20px; }
+    #log { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto; background: #fff; }
+    button { margin-top: 10px; padding: 10px 20px; }
+  </style>
+</head>
+<body>
+  <h1>Mini Oregon Trail</h1>
+  <div id="status">
+    <p>Name: <span id="playerName">---</span></p>
+    <p>Health: <span id="health">100</span></p>
+    <p>Food: <span id="food">100</span> lbs</p>
+    <p>Day: <span id="day">1</span></p>
+  </div>
+  <div id="log"></div>
+  <button onclick="nextDay()">Continue</button>
 
-    <title>OREGON TRAIL</title>
+  <script>
+    let player = {
+      name: prompt("What's your name?"),
+      health: 100,
+      food: 100,
+      day: 1
+    };
 
-    <link rel="stylesheet" type="text/css" href="style.css">
+    document.getElementById("playerName").textContent = player.name;
 
-    <script src="libraries/p5.min.js"></script>
-    <script src="libraries/p5.sound.min.js"></script>
-  </head>
+    const log = (message) => {
+      const logDiv = document.getElementById("log");
+      logDiv.innerHTML += `<p>${message}</p>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    };
 
-  <body>
-    <script src="sketch.js"></script>
-  </body>
+    const updateUI = () => {
+      document.getElementById("health").textContent = player.health;
+      document.getElementById("food").textContent = player.food;
+      document.getElementById("day").textContent = player.day;
+    };
+
+    const randomEvent = () => {
+      const events = [
+        () => { log("You traveled safely today."); },
+        () => {
+          player.food -= 10;
+          log("You ate 10 lbs of food.");
+        },
+        () => {
+          player.health -= 10;
+          log("You got a fever. -10 health.");
+        },
+        () => {
+          player.food += 15;
+          log("You found some wild berries! +15 food.");
+        }
+      ];
+      const event = events[Math.floor(Math.random() * events.length)];
+      event();
+    };
+
+    const nextDay = () => {
+      if (player.health <= 0) {
+        log("You have died 💀 Game Over.");
+        return;
+      }
+      player.day++;
+      randomEvent();
+      updateUI();
+    };
+
+    // Initial log
+    log(`Welcome, ${player.name}. Your journey begins.`);
+    updateUI();
+  </script>
+</body>
 </html>
-
 
