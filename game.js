@@ -4,6 +4,7 @@ function updateStatusUI() {
   document.getElementById('day').textContent    = state.day;
   document.getElementById('health').textContent = state.health;
   document.getElementById('food').textContent   = state.food;
+  document.getElementById('textbox').textContent= state.textbox
 }
 
 const socket = new WebSocket(
@@ -38,6 +39,9 @@ function applyRoundResult(resultText) {
   }
 
   state.day++;
+  const randomevent = randomEvents[Math.floor(Math.random()*randomEvents.length)];
+  const eventText = randomevent();
+  state.textbox=eventText
   updateStatusUI();
 
   restBtn.disabled = huntBtn.disabled = true;
@@ -51,6 +55,39 @@ function applyRoundResult(resultText) {
 const restBtn   = document.getElementById('restBtn');
 const huntBtn   = document.getElementById('huntBtn');
 const roundResult = document.getElementById('roundResult');
+
+//random events
+function lightningEvent() {
+    return "you are struck by lightning! ouch.";
+  }
+  
+  function wolfEvent() {
+    return "A pack of wolves attacks you!";
+  }
+  
+  function injuryEvent() {
+    return "you were injured.";
+  }
+  
+  function illnessEvent() {
+    return "you become sick.";
+  }
+
+
+const randomEvents=[
+lightningEvent,
+wolfEvent,
+injuryEvent,
+illnessEvent
+];
+
+function randomEventFunc(){
+    if (Math.random() < 0.3) {
+        const eventFn = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+        const eventText = eventFn();  //event happens and tells you
+        roundResult.textContent += `\n${eventText}`;
+      }
+}
 
 function sendVote(vote) {
   socket.send(JSON.stringify({ action:'sendVote', vote }));
