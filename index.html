@@ -2,152 +2,72 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Oregon Trail</title>
+  <title>Oregon Trail Multiplayer Vote</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-    }
-
-    button {
-      font-size: 11px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      display: inline-block;
-      text-align: center;
-      font-weight: bold;
-      padding: 0.7em 2em;
-      border: 3px solid #00ff08;
-      border-radius: 2px;
-      color: #00ff3c;
-      background-color: black;
-      text-decoration: none;
-      transition: 0.3s ease all;
-      margin: 10px;
-    }
-
-    #status, #nextDayBtn {
-      display: none;
-    }
+    body { font-family: sans-serif; text-align: center; margin-top: 2em; }
+    button { margin: 0.5em; padding: 0.5em 1em; }
+    #status { font-weight: bold; }
+    #successMsg { color: green; }
+    #resultMsg  { color: blue;  font-size: 1.2em; }
   </style>
 </head>
 <body>
+  <h1>Oregon Trail Multiplayer Vote</h1>
+  <p>Status: <span id="status">Connecting…</span></p>
 
-  <h1>Oregon Trail</h1>
+  <button id="restBtn">Vote: Rest</button>
+  <button id="huntBtn">Vote: Hunt</button>
 
-  <button id="startBtn">Start Your Journey?</button>
-  <p id="eventMessage"></p>
-  <div id="status">
-    <p>Name: <span id="NAME">---</span></p>
-    <p>Health: <span id="HEALTH">100</span></p>
-    <p>Food: <span id="FOOD">100</span> lbs</p>
-    <p>Day: <span id="DAY">1</span></p>
-  </div>
-
-  <button id="nextDayBtn">Next Day</button>
+  <p id="successMsg"></p>
+  <p id="resultMsg"></p>
 
   <script>
-    const status = {
-      name: "Traveler",
-      health: 100,
-      food: 100,
-      day: 1
-    };
+    // 1) Replace this URL with YOUR stage WebSocket URL from API Gateway:
+    const SOCKET_URL = "wss://kr3dp8jyic.execute-api.us-east-1.amazonaws.com/production";
 
-    const socket = new WebSocket("wss://YOUR_API_ID.execute-api.YOUR_REGION.amazonaws.com/production");
+    const statusEl  = document.getElementById("status");
+    const successEl = document.getElementById("successMsg");
+    const resultEl  = document.getElementById("resultMsg");
+
+    // 2) Open WebSocket
+    const socket = new WebSocket(SOCKET_URL);
 
     socket.onopen = () => {
-      console.log("Connected to WebSocket");
+      statusEl.textContent = "Connected";
     };
-
-    socket.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      console.log("Message from server:", msg);
-
-      if (msg.action === "voteResult") {
-        handleVoteResult(msg.result);
-      }
+    socket.onclose = () => {
+      statusEl.textContent = "Disconnected";
     };
-
-    function sendVote(vote) {
-      const message = {
-        action: "sendVote",
-        vote: vote
-      };
-      socket.send(JSON.stringify(message));
-    }
-
-    function handleVoteResult(result) {
-      if (result === "rest") {
-        status.health += 10;
-        document.getElementById("eventMessage").textContent = "Group chose to rest. Health improved.";
-      } else if (result === "hunt") {
-        status.food += 15;
-        document.getElementById("eventMessage").textContent = "Group went hunting. Food increased.";
-      } else {
-        document.getElementById("eventMessage").textContent = "No majority vote. Nothing happened.";
-      }
-      updateStatus();
-    }
-
-    document.getElementById("startBtn").addEventListener("click", function() {
-      document.getElementById("startBtn").style.display = "none";
-      document.getElementById("status").style.display = "block";
-      document.getElementById("nextDayBtn").style.display = "inline-block";
-    });
-
-    document.getElementById("nextDayBtn").addEventListener("click", function(){
-      status.day++;
-      triggerRandomEvent();
-      updateStatus();
-      check_Game_Over();
-
-      // Example: automatically send a vote (you'll probably replace with a choice UI)
-      sendVote("rest");
-    });
-
-    function updateStatus() {
-      document.getElementById("NAME").textContent = status.name;
-      document.getElementById("HEALTH").textContent = status.health;
-      document.getElementById("FOOD").textContent = status.food;
-      document.getElementById("DAY").textContent = status.day;
-    }
-
-    function check_Game_Over(){
-      if (status.health <= 0){
-        document.getElementById("eventMessage").textContent = "You died! Game over";
-      } else if (status.food <= 0){
-        document.getElementById("eventMessage").textContent = "You ran out of food and starved! Game over";
-      }
-    }
-
-    function triggerRandomEvent() {
-      const events = [
-        function() {
-          status.food += 10;
-          document.getElementById("eventMessage").textContent = "You found extra food!";
-        },
-        function() {
-          status.health -= 10;
-          document.getElementById("eventMessage").textContent = "You got sick and lost health.";
-        },
-        function() {
-          document.getElementById("eventMessage").textContent = "Nothing happened today.";
-        },
-        function() {
-          status.food = Math.max(0, status.food - 15);
-          document.getElementById("eventMessage").textContent = "A thief stole some of your food!";
-        },
-        function() {
-          status.health += 5;
-          document.getElementById("eventMessage").textContent = "You rested and feel stronger.";
+    socket.onerror = (err) => {
+      console.error("WebSocket error:", err);
+      statusEl.textContent = "Error";
+    };
+    socket.onmessage = ({ data }) => {
+      try {
+        const msg = JSON.parse(data);
+        if (msg.action === "roundResult") {
+          resultEl.textContent = "🔔 " + msg.result;
+        } else {
+          console.log("Unknown msg:", msg);
         }
-      ];
-      const randomEvent = events[Math.floor(Math.random() * events.length)];
-      randomEvent();
-    }
-  </script>
+      } catch(e) {
+        console.log("Non-JSON message:", data);
+      }
+    };
 
+    // 3) Helper to send votes
+    function sendVote(vote) {
+      const payload = { action: "sendVote", vote };
+      socket.send(JSON.stringify(payload));
+      successEl.textContent = "✅ Your vote (“" + vote + "”) was sent!";
+      // clear confirmation after 3s
+      setTimeout(() => successEl.textContent = "", 3000);
+      console.log("Sent vote:", payload);
+    }
+
+    document.getElementById("restBtn").addEventListener("click", () => sendVote("rest"));
+    document.getElementById("huntBtn").addEventListener("click", () => sendVote("hunt"));
+  </script>
 </body>
 </html>
+
