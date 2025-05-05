@@ -2,20 +2,46 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Oregon Trail – Multiplayer</title>
+  <title>Oregon Trail – Multiplayer</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; }
-    #voteBtns button { margin: 0 .5em; padding: .5em 1em; }
-    #roundResult { margin-top: 1em; font-weight: bold; }
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      max-width: 500px;
+      margin: auto;
+    }
+    h1 {
+      margin-bottom: 1rem;
+    }
+    #status p {
+      margin: 0.25rem 0;
+    }
+    #voteBtns {
+      margin: 1rem 0;
+    }
+    #voteBtns button {
+      margin: 0 0.5rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+    }
+    #roundResult {
+      font-weight: bold;
+      margin-top: 1rem;
+    }
+    #eventText {
+      font-style: italic;
+      margin-top: 0.5rem;
+      color: #555;
+    }
   </style>
 </head>
 <body>
-  <h1>Oregon Trail – Multiplayer</h1>
+  <h1>Oregon Trail – Multiplayer</h1>
+
   <div id="status">
     <p>Day: <span id="day">1</span></p>
-    <p>ㅤ<span id='textbox'></span></p>
     <p>Health: <span id="health">100</span></p>
-    <p>Food: <span id="food">100</span> lbs</p>
+    <p>Food: <span id="food">100</span> lbs</p>
   </div>
 
   <div id="voteBtns">
@@ -24,8 +50,9 @@
   </div>
 
   <p id="roundResult"></p>
+  <p id="eventText"></p>
 
-  <script src="game.js"></script>
-
+  <!-- your game logic: -->
+  <script src="game.js" defer></script>
 </body>
 </html>
