@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Oregon Trail Multiplayer Vote</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin-top: 2em; }
+    button { margin: 0.5em; padding: 0.5em 1em; }
+    #status { font-weight: bold; }
+    #successMsg { color: green; }
+    #resultMsg  { color: blue;  font-size: 1.2em; }
+  </style>
+</head>
+<body>
+  <h1>Oregon Trail Multiplayer Vote</h1>
+  <p>Status: <span id="status">Connecting…</span></p>
+
+  <button id="restBtn">Vote: Rest</button>
+  <button id="huntBtn">Vote: Hunt</button>
+
+  <p id="successMsg"></p>
+  <p id="resultMsg"></p>
+
+  <script>
+    // 1) Replace this URL with YOUR stage WebSocket URL from API Gateway:
+    const SOCKET_URL = "wss://kr3dp8jyic.execute-api.us-east-1.amazonaws.com/production";
+
+    const statusEl  = document.getElementById("status");
+    const successEl = document.getElementById("successMsg");
+    const resultEl  = document.getElementById("resultMsg");
+
+    // 2) Open WebSocket
+    const socket = new WebSocket(SOCKET_URL);
+
+    socket.onopen = () => {
+      statusEl.textContent = "Connected";
+    };
+    socket.onclose = () => {
+      statusEl.textContent = "Disconnected";
+    };
+    socket.onerror = (err) => {
+      console.error("WebSocket error:", err);
+      statusEl.textContent = "Error";
+    };
+    socket.onmessage = ({ data }) => {
+      try {
+        const msg = JSON.parse(data);
+        if (msg.action === "roundResult") {
+          resultEl.textContent = "🔔 " + msg.result;
+        } else {
+          console.log("Unknown msg:", msg);
+        }
+      } catch(e) {
+        console.log("Non-JSON message:", data);
+      }
+    };
+
+    // 3) Helper to send votes
+    function sendVote(vote) {
+      const payload = { action: "sendVote", vote };
+      socket.send(JSON.stringify(payload));
+      successEl.textContent = "✅ Your vote (“" + vote + "”) was sent!";
+      // clear confirmation after 3s
+      setTimeout(() => successEl.textContent = "", 3000);
+      console.log("Sent vote:", payload);
+    }
+
+    document.getElementById("restBtn").addEventListener("click", () => sendVote("rest"));
+    document.getElementById("huntBtn").addEventListener("click", () => sendVote("hunt"));
+  </script>
+</body>
+</html>
+
