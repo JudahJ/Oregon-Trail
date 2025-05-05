@@ -73,10 +73,6 @@ function applyRoundResult(resultText) {
   }, 3000);
 }
 
-const restBtn   = document.getElementById('restBtn');
-const huntBtn   = document.getElementById('huntBtn');
-const roundResult = document.getElementById('roundResult');
-
 function lightningEvent() {
 return "you are struck by lightning! ouch.";
   }
