@@ -2,46 +2,48 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Oregon Trail – Multiplayer</title>
+  <title>Oregon Trail – Multiplayer</title>
   <style>
-    /* … your existing styles … */
-    #voteBtns button { margin: 0 .5em; }
+    body { font-family: sans-serif; padding: 2rem; }
+    #voteBtns button { margin: 0 .5em; padding: .5em 1em; }
+    #roundResult { margin-top: 1em; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h1>Oregon Trail – Multiplayer</h1>
+  <h1>Oregon Trail – Multiplayer</h1>
   <div id="status">
     <p>Day: <span id="day">1</span></p>
     <p>Health: <span id="health">100</span></p>
     <p>Food: <span id="food">100</span> lbs</p>
   </div>
+
   <div id="voteBtns">
     <button id="restBtn" disabled>Vote “Rest”</button>
     <button id="huntBtn" disabled>Vote “Hunt”</button>
   </div>
-  <p id="roundResult" style="font-weight:bold;"></p>
+
+  <p id="roundResult"></p>
 
   <script>
-    // 1) Game state
+    //–– 1) Game state
     const state = { day:1, health:100, food:100 };
-
     function updateStatusUI() {
       document.getElementById('day').textContent    = state.day;
       document.getElementById('health').textContent = state.health;
       document.getElementById('food').textContent   = state.food;
     }
 
-    // 2) Bring up WebSocket
+    //–– 2) Open WebSocket
     const socket = new WebSocket(
       'wss://kr3dp8jyic.execute-api.us-east-1.amazonaws.com/production'
     );
     socket.onopen = () => {
-      // now that we’re connected, allow voting
-      document.getElementById('restBtn').disabled = false;
-      document.getElementById('huntBtn').disabled = false;
+      // allow voting once connected
+      restBtn.disabled = huntBtn.disabled = false;
     };
+    socket.onerror = e => console.error('WS error', e);
 
-    // 3) When you get the roundResult broadcast…
+    //–– 3) Handle broadcasted roundResult
     socket.onmessage = ev => {
       const msg = JSON.parse(ev.data);
       if (msg.action === 'roundResult') {
@@ -50,69 +52,52 @@
     };
 
     function applyRoundResult(resultText) {
-      // show the text in the UI
-      const rr = document.getElementById('roundResult');
-      rr.textContent = resultText;
+      roundResult.textContent = resultText;
 
-      // apply its mechanical effect:
-      // (here’s an example—you can tweak to match your single‑player logic)
+      // apply mechanical effects
       if (resultText.includes('rests')) {
         state.health = Math.min(100, state.health + 5);
-        state.food   -= 5;
+        state.food  -= 5;
       } else if (resultText.includes('hunts')) {
-        // 50% chance to find 20 food, 50% chance to lose 10 health
-        if (Math.random() < 0.5) {
-          state.food += 20;
-        } else {
-          state.health -= 10;
-        }
-        state.food -= 10;  // cost of travel/shot
+        if (Math.random() < 0.5) state.food += 20;
+        else                  state.health -= 10;
+        state.food -= 10;
       } else {
-        // tie: coin flip
-        if (Math.random() < 0.5) {
-          state.food += 15;
-        } else {
-          state.health -= 5;
-        }
+        // tie → coin flip
+        if (Math.random() < 0.5) state.food  += 15;
+        else                    state.health -= 5;
         state.food -= 10;
       }
 
       state.day++;
       updateStatusUI();
 
-      // disable voting until the next round
-      document.getElementById('restBtn').disabled = true;
-      document.getElementById('huntBtn').disabled = true;
+      // disable buttons until next round
+      restBtn.disabled = huntBtn.disabled = true;
 
-      // clear the result text after 3s and re‑enable voting
-      setTimeout(()=>{
-        rr.textContent = '';
-        document.getElementById('restBtn').disabled = false;
-        document.getElementById('huntBtn').disabled = false;
+      // clear result & re-enable after 3s
+      setTimeout(() => {
+        roundResult.textContent = '';
+        restBtn.disabled = huntBtn.disabled = false;
       }, 3000);
     }
 
-    // 4) Hook up your UI buttons to sendVote
-    document.getElementById('restBtn').onclick = () => {
-      socket.send(JSON.stringify({ action:'sendVote', vote:'rest' }));
-      document.getElementById('restBtn').disabled = true;
-      document.getElementById('huntBtn').disabled = true;
-    };
-    document.getElementById('huntBtn').onclick = () => {
-      socket.send(JSON.stringify({ action:'sendVote', vote:'hunt' }));
-      document.getElementById('restBtn').disabled = true;
-      document.getElementById('huntBtn').disabled = true;
-    };
+    //–– 4) Send votes
+    const restBtn   = document.getElementById('restBtn');
+    const huntBtn   = document.getElementById('huntBtn');
+    const roundResult = document.getElementById('roundResult');
 
-    // initialize UI
+    function sendVote(vote) {
+      socket.send(JSON.stringify({ action:'sendVote', vote }));
+      // immediately disable to prevent double‑voting
+      restBtn.disabled = huntBtn.disabled = true;
+    }
+
+    restBtn.addEventListener('click', () => sendVote('rest'));
+    huntBtn.addEventListener('click', () => sendVote('hunt'));
+
+    // initialize
     updateStatusUI();
   </script>
 </body>
 </html>
-
-    document.getElementById("restBtn").addEventListener("click", () => sendVote("rest"));
-    document.getElementById("huntBtn").addEventListener("click", () => sendVote("hunt"));
-  </script>
-</body>
-</html>
-
