@@ -19,45 +19,6 @@ function updateStatusUI() {
   foodEl.textContent   = state.food;
 }
 
-// weighted random events where weight is the probability
-const randomEvents = [
-  {
-    weight:  5,
-    text:   "A bolt of lightning strikes your wagon! Lose 20 health.",
-    apply:  () => state.health = Math.max(0, state.health - 20)
-  },
-  {
-    weight: 5,
-    text:   "A pack of wolves circles your camp! Lose 10 food.",
-    apply:  () => state.food = Math.max(0, state.food - 10)
-  },
-  {
-    weight: 10,
-    text:   "Someone sprained an ankle. Lose 10 health.",
-    apply:  () => state.health = Math.max(0, state.health - 10)
-  },
-  {
-    weight: 30,
-    text:   "You feel ill. Lose 5 health and 5 food.",
-    apply:  () => {
-      state.health = Math.max(0, state.health - 5);
-      state.food   = Math.max(0, state.food   - 5);
-    }
-  }
-];
-
-//Pick one event (50% chance none, otherwise weighted)
-function pickRandomEvent() {
-  if (Math.random() > 0.5) return null;  //Makes it so there wont be an event half the time
-
-  const totalWeight = randomEvents.reduce((sum, e) => sum + e.weight, 0);
-  let r = Math.random() * totalWeight;
-  for (let e of randomEvents) {
-    if (r < e.weight) return e;
-    r -= e.weight;
-  }
-  return null;
-}
 
 //Open WebSocket to my AWS API
 const socket = new WebSocket(
@@ -74,12 +35,12 @@ socket.onerror = e => console.error('WebSocket error:', e);
 socket.onmessage = ev => {
   const msg = JSON.parse(ev.data);
   if (msg.action === 'roundResult') {
-    applyRoundResult(msg.result);
+    applyRoundResult(msg.result, msg.eventText, msg.healthDelta, msg.foodDelta);
   }
 };
 
 //Apply the round result and then roll a random event
-function applyRoundResult(resultText) {
+function applyRoundResult(resultText, eventText, healthDelta, foodDelta) {
   // 8a) Show the round result
   roundResultEl.textContent = resultText;
 
@@ -103,12 +64,11 @@ function applyRoundResult(resultText) {
   state.day++;
   updateStatusUI();
 
-  // Roll for a random event
-  const evt = pickRandomEvent();
-  if (evt) {
-    evt.apply();
-    eventTextEl.textContent = evt.text;
-    updateStatusUI();
+  // Roll for a random event (server‑chosen)
+  if (eventText) {
+    eventTextEl.textContent = eventText;
+    state.health += healthDelta;
+    state.food   += foodDelta;
   } else {
     eventTextEl.textContent = '';
   }
@@ -131,7 +91,7 @@ function sendVote(vote) {
   console.log('Voted:', vote);
 }
 
-/Hook up button events
+//Hook up button events
 restBtn.addEventListener('click', () => sendVote('rest'));
 huntBtn.addEventListener('click', () => sendVote('hunt'));
 
