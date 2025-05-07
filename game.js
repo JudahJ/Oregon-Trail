@@ -1,33 +1,33 @@
 // game.js
 
-// shared game state
+// Game state
 const state = { day: 1, health: 100, food: 100 };
 
-// Define variables
-const day = document.getElementById('day');
-const health = document.getElementById('health');
-const food = document.getElementById('food');
-const restBtn = document.getElementById('restBtn');
-const huntBtn = document.getElementById('huntBtn');
-const roundResult = document.getElementById('roundResult');
-const sharedText = document.getElementById('eventText');    // for lightning/wolves
-const localText  = document.getElementById('localEventText'); // for sprain/illness
+// Buttons and elements
+const dayEl         = document.getElementById('day');
+const healthEl      = document.getElementById('health');
+const foodEl        = document.getElementById('food');
+const restBtn       = document.getElementById('restBtn');
+const huntBtn       = document.getElementById('huntBtn');
+const roundResultEl = document.getElementById('roundResult');
+const sharedTextEl  = document.getElementById('eventText');
+const localTextEl   = document.getElementById('localEventText');
 
-// update the stats
-function updateStatus() {
-  day.textContent    = state.day;
-  health.textContent = state.health;
-  food.textContent   = state.food;
+// Status updater
+function updateStatusUI() {
+  dayEl.textContent    = state.day;
+  healthEl.textContent = state.health;
+  foodEl.textContent   = state.food;
 }
 
-//  random events probability
+// Per‑player random events
 const localEvents = [
   { weight: 1, text: "Someone sprains an ankle!",    apply: () => state.health = Math.max(0, state.health - 10) },
   { weight: 2, text: "You catch a fever.",            apply: () => { state.health = Math.max(0, state.health - 5); state.food = Math.max(0, state.food - 5); } }
 ];
-function pickLocal() {
-  const total = localEvents.reduce((s,e)=>s+e.weight,0);
-  let r = Math.random()*total;
+function pickLocalEvent() {
+  const total = localEvents.reduce((sum, e) => sum + e.weight, 0);
+  let r = Math.random() * total;
   for (let e of localEvents) {
     if (r < e.weight) return e;
     r -= e.weight;
@@ -35,76 +35,79 @@ function pickLocal() {
   return null;
 }
 
-// open WebSocket
+// Open WebSocket to AWS
 const socket = new WebSocket(
   'wss://kr3dp8jyic.execute-api.us-east-1.amazonaws.com/production'
 );
-socket.onopen = () => { restBtn.disabled = huntBtn.disabled = false; };
-socket.onerror = e => console.error(e);
+socket.onopen = () => {
+  restBtn.disabled = huntBtn.disabled = false;
+};
+socket.onerror = e => console.error('WebSocket error', e);
 
-// send the round result to AWS API
+// Handle server side broadcast
 socket.onmessage = ev => {
   const msg = JSON.parse(ev.data);
   if (msg.action !== 'roundResult') return;
 
-  // apply vote outcome
-  roundResult.textContent = msg.result;
+  // 1) Show & apply the vote outcome
+  roundResultEl.textContent = msg.result;
   if (msg.result.includes('rests')) {
     state.health = Math.min(100, state.health + 5);
-    state.food  -= 5;
+    state.food   -= 5;
   } else if (msg.result.includes('hunts')) {
     state.food   -= 10;
     state.health -= 10;
   } else {
-    state.food += 15; // tie 
+    state.food   += 15; // tie flip
   }
 
-  // apply shared wagon event
+  // 2) Show & apply the shared wagon event
   if (msg.sharedEvent) {
-    sharedText.textContent = msg.sharedEvent.text;
+    sharedTextEl.textContent = msg.sharedEvent.text;
     if (msg.sharedEvent.text.includes('Lose 20 health')) {
       state.health = Math.max(0, state.health - 20);
     } else {
       state.food = Math.max(0, state.food - 10);
     }
   } else {
-    sharedText.textContent = '';
+    sharedTextEl.textContent = '';
   }
 
-  // write random local event on screen
-  const le = pickLocal();
-  if (le) {
-    localText.textContent = le.text;
-    le.apply();
+  // 3) Pick & apply a local event
+  const localEvt = pickLocalEvent();
+  if (localEvt) {
+    localTextEl.textContent = localEvt.text;
+    localEvt.apply();
   } else {
-    localText.textContent = '';
+    localTextEl.textContent = '';
   }
 
-  // advance day & refresh
+  // 4) Advance day & update display
   state.day++;
-  updateStatus();
+  updateStatusUI();
 
-  // disable voting until next round
+  // 5) Disable voting until clear
   restBtn.disabled = huntBtn.disabled = true;
 
-  // clear after 3s
+  // 6) Clear messages + re-enable after 3s
   setTimeout(() => {
-    roundResult.textContent = '';
-    sharedText.textContent  = '';
-    localText.textContent   = '';
+    roundResultEl.textContent = '';
+    sharedTextEl.textContent  = '';
+    localTextEl.textContent   = '';
     restBtn.disabled = huntBtn.disabled = false;
   }, 3000);
 };
 
-// send vote helper
+// Send vote helper
 function sendVote(vote) {
   restBtn.disabled = huntBtn.disabled = true;
   socket.send(JSON.stringify({ action: 'sendVote', vote }));
+  console.log('Voted:', vote);
 }
 
-// wire up buttons
+// Hook up buttons
 restBtn.addEventListener('click', () => sendVote('rest'));
 huntBtn.addEventListener('click', () => sendVote('hunt'));
 
-//Update the status initially
-updateStatus();
+// Initialize UI
+updateStatusUI();
