@@ -1,95 +1,110 @@
 // game.js
 
-// Game state
-const gameState = { day: 1, health: 100, food: 100 };
+// shared game state
+const state = { day: 1, health: 100, food: 100 };
 
-// Status variables
+// Define variables
 const day = document.getElementById('day');
 const health = document.getElementById('health');
 const food = document.getElementById('food');
 const restBtn = document.getElementById('restBtn');
 const huntBtn = document.getElementById('huntBtn');
 const roundResult = document.getElementById('roundResult');
-const eventText = document.getElementById('eventText');
+const sharedText = document.getElementById('eventText');    // for lightning/wolves
+const localText  = document.getElementById('localEventText'); // for sprain/illness
 
-// update the stats 
-function updateStatusUI() {
-  day.textContent    = gameState.day;
-  health.textContent = gameState.health;
-  food.textContent   = gameState.food;
+// update the stats
+function updateStatus() {
+  day.textContent    = state.day;
+  health.textContent = state.health;
+  food.textContent   = state.food;
+}
+
+//  random events probability
+const localEvents = [
+  { weight: 1, text: "Someone sprains an ankle!",    apply: () => state.health = Math.max(0, state.health - 10) },
+  { weight: 2, text: "You catch a fever.",            apply: () => { state.health = Math.max(0, state.health - 5); state.food = Math.max(0, state.food - 5); } }
+];
+function pickLocal() {
+  const total = localEvents.reduce((s,e)=>s+e.weight,0);
+  let r = Math.random()*total;
+  for (let e of localEvents) {
+    if (r < e.weight) return e;
+    r -= e.weight;
+  }
+  return null;
 }
 
 // open WebSocket
 const socket = new WebSocket(
   'wss://kr3dp8jyic.execute-api.us-east-1.amazonaws.com/production'
 );
+socket.onopen = () => { restBtn.disabled = huntBtn.disabled = false; };
+socket.onerror = e => console.error(e);
 
-socket.onopen = () => {
-  restBtn.disabled = huntBtn.disabled = false;
-};
-socket.onerror = e => console.error('WebSocket error:', e);
-
-// Send the round result to AWS API
+// send the round result to AWS API
 socket.onmessage = ev => {
   const msg = JSON.parse(ev.data);
-  if (msg.action === 'roundResult') {
-    applyRoundResult(msg.result, msg.event);
-  }
-};
+  if (msg.action !== 'roundResult') return;
 
-// apply vote outcome and the shared event
-function applyRoundResult(resultText, evt) {
-  // show vote result
-  roundResult.textContent = resultText;
-
-  // rest/hunt/tie effects
-  if (resultText.includes('rests')) {
-    gameState.health = Math.min(100, gameState.health + 5);
-    gameState.food  -= 5;
-  } else if (resultText.includes('hunts')) {
-    gameState.food   -= 10;
-    gameState.health -= 10;
-  } else { // tie case
-    gameState.food += 15;
+  // apply vote outcome
+  roundResult.textContent = msg.result;
+  if (msg.result.includes('rests')) {
+    state.health = Math.min(100, state.health + 5);
+    state.food  -= 5;
+  } else if (msg.result.includes('hunts')) {
+    state.food   -= 10;
+    state.health -= 10;
+  } else {
+    state.food += 15; // tie 
   }
 
-  // shared events where it affects BOTH players
-  if (evt && evt.text) {
-    eventText.textContent = evt.text;
-    if (evt.text.includes('Lose 20 health')) {
-      gameState.health = Math.max(0, gameState.health - 20);
-    } else if (evt.text.includes('Lose 10 food')) {
-      gameState.food = Math.max(0, gameState.food - 10);
-
+  // apply shared wagon event
+  if (msg.sharedEvent) {
+    sharedText.textContent = msg.sharedEvent.text;
+    if (msg.sharedEvent.text.includes('Lose 20 health')) {
+      state.health = Math.max(0, state.health - 20);
+    } else {
+      state.food = Math.max(0, state.food - 10);
     }
   } else {
-    eventText.textContent = '';
+    sharedText.textContent = '';
   }
 
-  // update the day
-  gameState.day++;
-  updateStatusUI();
+  // write random local event on screen
+  const le = pickLocal();
+  if (le) {
+    localText.textContent = le.text;
+    le.apply();
+  } else {
+    localText.textContent = '';
+  }
 
-  // disable buttons until next round
+  // advance day & refresh
+  state.day++;
+  updateStatus();
+
+  // disable voting until next round
   restBtn.disabled = huntBtn.disabled = true;
 
-  // clear & re‑enable messages after 3 seconds or 3000 milliseconds
+  // clear after 3s
   setTimeout(() => {
     roundResult.textContent = '';
-    eventText.textContent   = '';
+    sharedText.textContent  = '';
+    localText.textContent   = '';
     restBtn.disabled = huntBtn.disabled = false;
   }, 3000);
-}
+};
 
-// send vote to AWS 
+// send vote helper
 function sendVote(vote) {
-  socket.send(JSON.stringify({ action: 'sendVote', vote }));
   restBtn.disabled = huntBtn.disabled = true;
+  socket.send(JSON.stringify({ action: 'sendVote', vote }));
 }
 
-// hook up buttons
+// wire up buttons
 restBtn.addEventListener('click', () => sendVote('rest'));
 huntBtn.addEventListener('click', () => sendVote('hunt'));
 
-// Update status the first time
-updateStatusUI();
+//Update the status initially
+updateStatus();
