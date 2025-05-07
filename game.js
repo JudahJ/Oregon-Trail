@@ -48,7 +48,7 @@ const randomEvents = [
 
 //Pick one event (50% chance none, otherwise weighted)
 function pickRandomEvent() {
-  if (Math.random() > 0.5) return null;  //Makes it so there won’t be an event half the time
+  if (Math.random() > 0.5) return null;
 
   const totalWeight = randomEvents.reduce((sum, e) => sum + e.weight, 0);
   let r = Math.random() * totalWeight;
@@ -59,7 +59,7 @@ function pickRandomEvent() {
   return null;
 }
 
-//Open WebSocket to my AWS API
+// Open WebSocket
 const socket = new WebSocket(
   'wss://kr3dp8jyic.execute-api.us-east-1.amazonaws.com/production'
 );
@@ -67,10 +67,8 @@ const socket = new WebSocket(
 socket.onopen = () => {
   restBtn.disabled = huntBtn.disabled = false;
 };
-
 socket.onerror = e => console.error('WebSocket error:', e);
 
-//Handle Result returned from AWS
 socket.onmessage = ev => {
   const msg = JSON.parse(ev.data);
   if (msg.action === 'roundResult') {
@@ -78,7 +76,7 @@ socket.onmessage = ev => {
   }
 };
 
-//Apply the round result and then roll a random event
+// Apply the round result and then roll a random event
 function applyRoundResult(resultText) {
   // 1) Show the round result
   roundResultEl.textContent = resultText;
@@ -89,8 +87,8 @@ function applyRoundResult(resultText) {
     state.food   = Math.max(0, state.food - 5);
   }
   else if (resultText.includes('hunts')) {
-    state.food   = Math.max(0, state.food - 10); // cost
-    state.health = Math.max(0, state.health - 10); // risk
+    state.food   = Math.max(0, state.food - 10);
+    state.health = Math.max(0, state.health - 10);
   }
   else if (resultText.includes('gains 15 food')) {
     state.food += 15;
@@ -99,7 +97,7 @@ function applyRoundResult(resultText) {
     state.health = Math.max(0, state.health - 5);
   }
 
-  // 3) Advance the day & update status
+  // 3) Advance the day
   state.day++;
   updateStatusUI();
 
@@ -116,7 +114,7 @@ function applyRoundResult(resultText) {
   // 5) Disable voting until next round
   restBtn.disabled = huntBtn.disabled = true;
 
-  // 6) Clear messages and re‑enable after 3 seconds (3000 ms)
+  // 6) Clear messages + re‑enable after 3 seconds
   setTimeout(() => {
     roundResultEl.textContent = '';
     eventTextEl.textContent   = '';
@@ -124,11 +122,10 @@ function applyRoundResult(resultText) {
   }, 3000);
 }
 
-// Send vote 
+// Send vote
 function sendVote(vote) {
   socket.send(JSON.stringify({ action: 'sendVote', vote }));
   restBtn.disabled = huntBtn.disabled = true;
-  console.log('Voted:', vote);
 }
 
 // Hook up button events
