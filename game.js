@@ -60,11 +60,7 @@ function applyRoundResult(resultText, evt) {
       gameState.health = Math.max(0, gameState.health - 20);
     } else if (evt.text.includes('Lose 10 food')) {
       gameState.food = Math.max(0, gameState.food - 10);
-    } else if (evt.text.includes('Lose 10 health')) {
-      gameState.health = Math.max(0, gameState.health - 10);
-    } else if (evt.text.includes('Lose 5 health')) {
-      gameState.health = Math.max(0, gameState.health - 5);
-      gameState.food   = Math.max(0, gameState.food   - 5);
+
     }
   } else {
     eventText.textContent = '';
