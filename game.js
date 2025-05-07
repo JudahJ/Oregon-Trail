@@ -41,14 +41,14 @@ const randomEvents = [
     text:   "You feel ill. Lose 5 health and 5 food.",
     apply:  () => {
       state.health = Math.max(0, state.health - 5);
-      state.food   = Math.max(0, state.food   - 5);
+      state.food   = Math.max(0, state.food - 5);
     }
   }
 ];
 
-// Pick one event (50% chance none, otherwise weighted)
+//Pick one event (50% chance none, otherwise weighted)
 function pickRandomEvent() {
-  if (Math.random() > 0.5) return null;  // half the time, no event
+  if (Math.random() > 0.5) return null;  //Makes it so there won’t be an event half the time
 
   const totalWeight = randomEvents.reduce((sum, e) => sum + e.weight, 0);
   let r = Math.random() * totalWeight;
@@ -59,20 +59,18 @@ function pickRandomEvent() {
   return null;
 }
 
-// Open WebSocket to AWS API
+//Open WebSocket to my AWS API
 const socket = new WebSocket(
   'wss://kr3dp8jyic.execute-api.us-east-1.amazonaws.com/production'
 );
 
-// When socket opens, enable voting buttons
 socket.onopen = () => {
   restBtn.disabled = huntBtn.disabled = false;
 };
 
-// Log any WebSocket errors
 socket.onerror = e => console.error('WebSocket error:', e);
 
-// Handle the broadcasted roundResult from the server
+//Handle Result returned from AWS
 socket.onmessage = ev => {
   const msg = JSON.parse(ev.data);
   if (msg.action === 'roundResult') {
@@ -80,22 +78,22 @@ socket.onmessage = ev => {
   }
 };
 
-// Apply the round result and then roll a random event
+//Apply the round result and then roll a random event
 function applyRoundResult(resultText) {
   // 1) Show the round result
   roundResultEl.textContent = resultText;
 
-  // 2) Apply Rest/Hunt/Tie effects exactly as server decided
+  // 2) Apply Rest, Hunt or Tie effects exactly as the server decided
   if (resultText.includes('rests')) {
     state.health = Math.min(100, state.health + 5);
     state.food   = Math.max(0, state.food - 5);
   }
   else if (resultText.includes('hunts')) {
-    state.food   = Math.max(0, state.food - 10);  // cost
+    state.food   = Math.max(0, state.food - 10); // cost
     state.health = Math.max(0, state.health - 10); // risk
   }
   else if (resultText.includes('gains 15 food')) {
-    state.food = state.food + 15;
+    state.food += 15;
   }
   else if (resultText.includes('loses 5 health')) {
     state.health = Math.max(0, state.health - 5);
@@ -126,7 +124,7 @@ function applyRoundResult(resultText) {
   }, 3000);
 }
 
-// Send vote to AWS
+// Send vote 
 function sendVote(vote) {
   socket.send(JSON.stringify({ action: 'sendVote', vote }));
   restBtn.disabled = huntBtn.disabled = true;
@@ -139,8 +137,3 @@ huntBtn.addEventListener('click', () => sendVote('hunt'));
 
 // Initialize UI
 updateStatusUI();
-
-
-  // Initialize UI
-  updateStatusUI();
-});
