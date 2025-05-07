@@ -12,7 +12,7 @@ const huntBtn       = document.getElementById('huntBtn');
 const roundResultEl = document.getElementById('roundResult');
 const eventTextEl   = document.getElementById('eventText');
 
-// Status updater
+// Update status
 function updateStatusUI() {
   dayEl.textContent    = state.day;
   healthEl.textContent = state.health;
@@ -46,7 +46,7 @@ const randomEvents = [
   }
 ];
 
-//Pick one event (50% chance none, otherwise weighted)
+//chooses one event where there is a 50% chance of nothing happening
 function pickRandomEvent() {
   if (Math.random() > 0.5) return null;
 
@@ -78,10 +78,10 @@ socket.onmessage = ev => {
 
 // Apply the round result and then roll a random event
 function applyRoundResult(resultText) {
-  // 1) Show the round result
+  //Show the round result
   roundResultEl.textContent = resultText;
 
-  // 2) Apply Rest, Hunt or Tie effects exactly as the server decided
+  //Apply Rest, Hunt or Tie effects exactly as the server decided
   if (resultText.includes('rests')) {
     state.health = Math.min(100, state.health + 5);
     state.food   = Math.max(0, state.food - 5);
@@ -97,11 +97,11 @@ function applyRoundResult(resultText) {
     state.health = Math.max(0, state.health - 5);
   }
 
-  // 3) Advance the day
+  //Update the day
   state.day++;
   updateStatusUI();
 
-  // 4) Roll for a random event
+  //Roll for a random event
   const evt = pickRandomEvent();
   if (evt) {
     evt.apply();
@@ -111,10 +111,10 @@ function applyRoundResult(resultText) {
     eventTextEl.textContent = '';
   }
 
-  // 5) Disable voting until next round
+  //Disable voting until next round
   restBtn.disabled = huntBtn.disabled = true;
 
-  // 6) Clear messages + re‑enable after 3 seconds
+  //Clear messages and activate after 3 secs or 3000 milliseconds 
   setTimeout(() => {
     roundResultEl.textContent = '';
     eventTextEl.textContent   = '';
@@ -132,5 +132,5 @@ function sendVote(vote) {
 restBtn.addEventListener('click', () => sendVote('rest'));
 huntBtn.addEventListener('click', () => sendVote('hunt'));
 
-// Initialize UI
+// update status
 updateStatusUI();
