@@ -22,8 +22,9 @@ function updateUI() {
 
 // per‑player events
 const localEvents = [
-  { text: "Sprained ankle! Lose 10 health.",          apply: ()=> state.health = Math.max(0, state.health - 10) },
-  { text: "Fell ill! Lose 5 health and 5 food.",      apply: ()=> {
+  { text: "Sprained ankle! Lose 10 health.", apply: ()=> 
+    state.health = Math.max(0, state.health - 10) },
+  { text: "Fell ill! Lose 5 health and 5 food.", apply: ()=> {
       state.health = Math.max(0, state.health - 5);
       state.food   = Math.max(0, state.food   - 5);
     }
