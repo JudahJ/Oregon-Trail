@@ -4,45 +4,16 @@
   <meta charset="UTF-8" />
   <title>Oregon Trail – Multiplayer</title>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 2rem;
-      max-width: 500px;
-      margin: auto;
-    }
-    h1 {
-      margin-bottom: 1rem;
-    }
-    #status p {
-      margin: 0.25rem 0;
-    }
-    #voteBtns {
-      margin: 1rem 0;
-    }
-    #voteBtns button {
-      margin: 0 0.5rem;
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-    }
-    #roundResult {
-      font-weight: bold;
-      margin-top: 1rem;
-    }
-    #eventText,
-    #localEventText {
-      font-style: italic;
-      margin-left: 1em;
-      color: #555;
-    }
+    /* your styles… */
   </style>
 </head>
 <body>
-  <h1>Oregon Trail – Multiplayer</h1>
+  <h1>Oregon Trail – Multiplayer</h1>
 
   <div id="status">
     <p>Day: <span id="day">1</span></p>
     <p>Health: <span id="health">100</span></p>
-    <p>Food: <span id="food">100</span> lbs</p>
+    <p>Food: <span id="food">100</span> lbs</p>
   </div>
 
   <div id="voteBtns">
@@ -50,14 +21,11 @@
     <button id="huntBtn" disabled>Vote “Hunt”</button>
   </div>
 
-  <!-- vote outcome -->
   <p id="roundResult"></p>
-  <!-- shared events (lightning/wolves) -->
   <p id="eventText"></p>
-  <!-- per-player events (sprains/illness) -->
   <p id="localEventText"></p>
 
-  <!-- your game logic -->
+  <!-- your game logic: -->
   <script src="game.js"></script>
 </body>
 </html>
