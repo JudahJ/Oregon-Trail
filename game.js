@@ -68,7 +68,7 @@ function applyRound(text, sharedEvt) {
     roundResult.textContent = '';
     eventText.textContent   = '';
     restBtn.disabled = huntBtn.disabled = false;
-  }, 3000);
+  }, 10000);
 }
 
 function sendVote(v) {
