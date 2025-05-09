@@ -3,7 +3,7 @@
 // game state
 const state = { day: 1, health: 100, food: 100 };
 
-// DOM handles
+// Set variables to use
 const day       = document.getElementById("day");
 const health    = document.getElementById("health");
 const food      = document.getElementById("food");
@@ -13,14 +13,14 @@ const roundResult = document.getElementById("roundResult");
 const eventText   = document.getElementById("eventText");
 const localText   = document.getElementById("localEventText");
 
-// update the on‑screen numbers
+// update status of the players
 function updateUI() {
   day.textContent    = state.day;
   health.textContent = state.health;
   food.textContent   = state.food;
 }
 
-// per‑player events, client picks these
+// per‑player events
 const localEvents = [
   { text: "Sprained ankle! Lose 10 health.",          apply: ()=> state.health = Math.max(0, state.health - 10) },
   { text: "Fell ill! Lose 5 health and 5 food.",      apply: ()=> {
@@ -52,7 +52,7 @@ socket.onopen = () => {
 
 socket.onerror = e => console.error("WebSocket error", e);
 
-// when the server broadcasts your round…
+// when the server broadcasts the round
 socket.onmessage = e => {
   const msg = JSON.parse(e.data);
   if (msg.action !== "roundResult") return;
@@ -68,7 +68,7 @@ socket.onmessage = e => {
     state.food   -= 10;
     state.health -= 10;
   } else {
-    // tie → coin flip treated by server text only
+    // tie = coin flip treated by server text only
   }
 
   // apply the shared event the server sent
@@ -84,7 +84,7 @@ socket.onmessage = e => {
     eventText.textContent = "";
   }
 
-  // pick & apply a local event
+  // pick and apply a local event
   if (Math.random() < 0.5) {
     const le = pick(localEvents);
     localText.textContent = le.text;
@@ -93,14 +93,14 @@ socket.onmessage = e => {
     localText.textContent = "";
   }
 
-  // advance day & update display
+  // advance day and update screen
   state.day++;
   updateUI();
 
   // lock buttons until next round
   restBtn.disabled = huntBtn.disabled = true;
 
-  // clear everything & re‑enable after 3s
+  // clear everything and reenable after 3s
   setTimeout(() => {
     roundResult.textContent = "";
     eventText.textContent   = "";
@@ -120,5 +120,5 @@ function sendVote(vote) {
 restBtn.addEventListener("click", () => sendVote("rest"));
 huntBtn.addEventListener("click", () => sendVote("hunt"));
 
-// initial UI
+// initial status
 updateUI();
