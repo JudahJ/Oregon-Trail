@@ -1,137 +1,122 @@
-// game.js
+//game.js
 
-// game state
+// state
 const state = { day: 1, health: 100, food: 100 };
 
 // Variables
-const day      = document.getElementById("day");
-const health   = document.getElementById("health");
-const food     = document.getElementById("food");
-const restBtn  = document.getElementById("restBtn");
-const huntBtn  = document.getElementById("huntBtn");
-const roundResult     = document.getElementById("roundResult");
-const eventText       = document.getElementById("eventText");
-const localEventText  = document.getElementById("localEventText");
+const dayElem         = document.getElementById("day");
+const healthElem      = document.getElementById("health");
+const foodElem        = document.getElementById("food");
+const restBtn         = document.getElementById("restBtn");
+const huntBtn         = document.getElementById("huntBtn");
+const roundResultElem = document.getElementById("roundResult");
+const localEventElem  = document.getElementById("localEventText");
 
-// update player stats
-function updateStatusUI() {
-  day.textContent    = state.day;
-  health.textContent = state.health;
-  food.textContent   = state.food;
+// update display
+function updateUI() {
+  dayElem.textContent    = state.day;
+  healthElem.textContent = state.health;
+  foodElem.textContent   = state.food;
 }
 
-// shared events (affect both players)
-const sharedEvents = [
-  { weight: 1, text: "Lightning strikes! You all lose 20 health.", 
-    apply: () => state.health = Math.max(0, state.health - 20) },
-  { weight: 1, text: "Wolves raid supplies! you all lose 10 food.",
-    apply: () => state.food   = Math.max(0, state.food   - 10) }
-];
-
-// local events (only this player)
+// per‐player events
 const localEvents = [
-  { weight: 1, text: "Sprained ankle! You lose 10 health.", apply: () => 
-    state.health = Math.max(0, state.health - 10) },
-  { weight: 1, text: "Fell ill! You lose 5 health and 5 food.",apply: () => {
+  {
+    weight: 1,
+    text: "Sprained ankle! Lose 10 health.",
+    apply: () => { state.health = Math.max(0, state.health - 10); }
+  },
+  {
+    weight: 1,
+    text: "Fell ill! Lose 5 health and 5 food.",
+    apply: () => {
       state.health = Math.max(0, state.health - 5);
       state.food   = Math.max(0, state.food   - 5);
     }
   }
 ];
 
-// pick one weighted event or nothing
-function pickEvent(list) {
-  const total = list.reduce((sum, e) => sum + e.weight, 0);
+// weighted pick (or none)
+function pickLocalEvent() {
+  if (Math.random() > 0.5) return null;  // 50% no event
+  const total = localEvents.reduce((sum,e) => sum + e.weight, 0);
   let r = Math.random() * total;
-  for (const e of list) {
+  for (let e of localEvents) {
     if (r < e.weight) return e;
     r -= e.weight;
   }
   return null;
 }
 
-// open websocket
+// open WebSocket
 const socket = new WebSocket(
   "wss://kr3dp8jyic.execute-api.us-east-1.amazonaws.com/production"
 );
-
-socket.addEventListener("open", () => {
+socket.onopen = () => {
   restBtn.disabled = false;
   huntBtn.disabled = false;
-});
+};
+socket.onerror = e => console.error("WebSocket error", e);
 
-socket.addEventListener("message", (e) => {
-  const msg = JSON.parse(e.data);
+// handle broadcast
+socket.onmessage = ev => {
+  const msg = JSON.parse(ev.data);
   if (msg.action === "roundResult") {
-    applyRoundResult(msg.result);
+    applyRound(msg.result);
   }
-});
+};
 
-// apply server result, then apply random events
-function applyRoundResult(text) {
-  roundResult.textContent = text;
+function applyRound(resultText) {
+  roundResultElem.textContent = resultText;
 
-  // apply rest/hunt/tie outcome
-  if (text.includes("rests")) {
+  // apply the shared round result
+  if (resultText.includes("rests")) {
     state.health = Math.min(100, state.health + 5);
     state.food  -= 5;
-  } else if (text.includes("hunts")) {
+  }
+  else if (resultText.includes("hunts")) {
     state.food   -= 10;
     state.health -= 10;
-  } else if (text.includes("gains")) {
+  }
+  else if (resultText.includes("gains")) {
     state.food += 15;
-  } else if (text.includes("loses")) {
+  }
+  else if (resultText.includes("loses")) {
     state.health -= 5;
   }
 
-  // next day
+  // advance day
   state.day++;
-  updateStatusUI();
+  updateUI();
 
-  // 50% chance for a shared event
-  if (Math.random() < 0.5) {
-    const evt = pickEvent(sharedEvents);
+  // per‐player random event
+  const evt = pickLocalEvent();
+  if (evt) {
     evt.apply();
-    eventText.textContent = evt.text;
-    updateStatusUI();
+    localEventElem.textContent = evt.text;
+    updateUI();
   } else {
-    eventText.textContent = "";
+    localEventElem.textContent = "";
   }
 
-  // 50% chance for a local event
-  if (Math.random() < 0.5) {
-    const evt = pickEvent(localEvents);
-    evt.apply();
-    localEventText.textContent = evt.text;
-    updateStatusUI();
-  } else {
-    localEventText.textContent = "";
-  }
-
-  // disable buttons until next round
+  // disable until next
   restBtn.disabled = huntBtn.disabled = true;
 
-  // clear texts and re-enable after 3 seconds
+  // reset after 3s
   setTimeout(() => {
-    roundResult.textContent   = "";
-    eventText.textContent     = "";
-    localEventText.textContent= "";
+    roundResultElem.textContent = "";
+    localEventElem.textContent  = "";
     restBtn.disabled = huntBtn.disabled = false;
   }, 3000);
 }
 
-// send your vote
+// send a vote
 function sendVote(vote) {
-  if (socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify({ action: "sendVote", vote }));
-    restBtn.disabled = huntBtn.disabled = true;
-  } else {
-    console.warn("WebSocket not open:", socket.readyState);
-  }
+  socket.send(JSON.stringify({ action: "sendVote", vote }));
+  restBtn.disabled = huntBtn.disabled = true;
 }
 
 restBtn.addEventListener("click", () => sendVote("rest"));
 huntBtn.addEventListener("click", () => sendVote("hunt"));
 
-// initial render
-updateStatusUI();
+updateUI();
