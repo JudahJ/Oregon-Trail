@@ -22,14 +22,14 @@ function updateStatusUI() {
 
 // shared events (affect both players)
 const sharedEvents = [
-  { weight: 1, text: "Lightning strikes! Lose 20 health.", apply: () => state.health = Math.max(0, state.health - 20) },
-  { weight: 1, text: "Wolves raid supplies! Lose 10 food.",      apply: () => state.food   = Math.max(0, state.food   - 10) }
+  { weight: 1, text: "Lightning strikes! You all lose 20 health.", apply: () => state.health = Math.max(0, state.health - 20) },
+  { weight: 1, text: "Wolves raid supplies! you all lose 10 food.",      apply: () => state.food   = Math.max(0, state.food   - 10) }
 ];
 
 // local events (only this player)
 const localEvents = [
-  { weight: 1, text: "Sprained ankle! Lose 10 health.",        apply: () => state.health = Math.max(0, state.health - 10) },
-  { weight: 1, text: "Fell ill! Lose 5 health and 5 food.",    apply: () => {
+  { weight: 1, text: "Sprained ankle! You lose 10 health.",        apply: () => state.health = Math.max(0, state.health - 10) },
+  { weight: 1, text: "Fell ill! You lose 5 health and 5 food.",    apply: () => {
       state.health = Math.max(0, state.health - 5);
       state.food   = Math.max(0, state.food   - 5);
     }
