@@ -3,7 +3,7 @@
 // game state
 const state = { day: 1, health: 100, food: 100 };
 
-// DOM references
+// Variables
 const day      = document.getElementById("day");
 const health   = document.getElementById("health");
 const food     = document.getElementById("food");
@@ -13,7 +13,7 @@ const roundResult     = document.getElementById("roundResult");
 const eventText       = document.getElementById("eventText");
 const localEventText  = document.getElementById("localEventText");
 
-// update UI numbers
+// update player stats
 function updateStatusUI() {
   day.textContent    = state.day;
   health.textContent = state.health;
@@ -64,7 +64,7 @@ socket.addEventListener("message", (e) => {
   }
 });
 
-// apply server result, then random events
+// apply server result, then apply random events
 function applyRoundResult(text) {
   roundResult.textContent = text;
 
@@ -108,7 +108,7 @@ function applyRoundResult(text) {
   // disable buttons until next round
   restBtn.disabled = huntBtn.disabled = true;
 
-  // clear texts & re-enable after 3 seconds
+  // clear texts and re-enable after 3 seconds
   setTimeout(() => {
     roundResult.textContent   = "";
     eventText.textContent     = "";
