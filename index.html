@@ -4,7 +4,37 @@
   <meta charset="UTF-8" />
   <title>Oregon Trail – Multiplayer</title>
   <style>
-    /* your styles… */
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      max-width: 500px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    #status p {
+      margin: 0.25rem 0;
+    }
+    #voteBtns {
+      margin: 1.5rem 0;
+      text-align: center;
+    }
+    #voteBtns button {
+      margin: 0 0.5rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+    }
+    #roundResult {
+      font-weight: bold;
+      margin-top: 1rem;
+    }
+    #eventText, #localEventText {
+      font-style: italic;
+      margin-left: 1em;
+      color: #555;
+    }
   </style>
 </head>
 <body>
@@ -13,7 +43,7 @@
   <div id="status">
     <p>Day: <span id="day">1</span></p>
     <p>Health: <span id="health">100</span></p>
-    <p>Food: <span id="food">100</span> lbs</p>
+    <p>Food: <span id="food">100</span> lbs</p>
   </div>
 
   <div id="voteBtns">
@@ -25,7 +55,6 @@
   <p id="eventText"></p>
   <p id="localEventText"></p>
 
-  <!-- your game logic: -->
   <script src="game.js"></script>
 </body>
 </html>
