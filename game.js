@@ -1,23 +1,23 @@
 // game.js
 
-// game state
+// --- state ---
 const state = { day: 1, health: 100, food: 100 };
 
-// DOM references
-const dayElem      = document.getElementById("day");
-const healthElem   = document.getElementById("health");
-const foodElem     = document.getElementById("food");
+// --- element refs ---
+const dayEl        = document.getElementById("day");
+const healthEl     = document.getElementById("health");
+const foodEl       = document.getElementById("food");
 const restBtn      = document.getElementById("restBtn");
 const huntBtn      = document.getElementById("huntBtn");
 const roundResult  = document.getElementById("roundResult");
-const actionText   = document.getElementById("eventText");
-const localText    = document.getElementById("localEventText");
+const actionDesc   = document.getElementById("actionDescription");
+const localDesc    = document.getElementById("localEventDescription");
 
-// update the on‑screen stats
+// --- update the HUD ---
 function updateUI() {
-  dayElem.textContent    = state.day;
-  healthElem.textContent = state.health;
-  foodElem.textContent   = state.food;
+  dayEl.textContent    = state.day;
+  healthEl.textContent = state.health;
+  foodEl.textContent   = state.food;
 
   if (state.health <= 0) {
     roundResult.textContent = "You died!";
@@ -29,11 +29,14 @@ function updateUI() {
   }
 }
 
-// per‑player random mishaps
+// --- per-player mishaps ---
 const localEvents = [
-  { text: "Sprained ankle! Lose 10 health.",
-    apply: () => { state.health = Math.max(0, state.health - 10); } },
-  { text: "Fell ill! Lose 5 health and 5 food.",
+  {
+    text:  "Sprained ankle! Lose 10 health.",
+    apply: () => { state.health = Math.max(0, state.health - 10); }
+  },
+  {
+    text:  "Fell ill! Lose 5 health and 5 food.",
     apply: () => {
       state.health = Math.max(0, state.health - 5);
       state.food   = Math.max(0, state.food   - 5);
@@ -41,15 +44,13 @@ const localEvents = [
   }
 ];
 
-// pick one local event 50% of the time
+// --- 50% chance for a local event ---
 function pickLocalEvent() {
   if (Math.random() > 0.5) return null;
-  return localEvents[
-    Math.floor(Math.random() * localEvents.length)
-  ];
+  return localEvents[Math.floor(Math.random() * localEvents.length)];
 }
 
-// open WebSocket
+// --- open WebSocket ---
 const socket = new WebSocket(
   "wss://kr3dp8jyic.execute-api.us-east-1.amazonaws.com/production"
 );
@@ -60,62 +61,66 @@ socket.onopen = () => {
 };
 socket.onerror = e => console.error("WebSocket error:", e);
 
-// handle server's roundResult
+// --- handle server broadcast ---
 socket.onmessage = ev => {
   const msg = JSON.parse(ev.data);
   if (msg.action !== "roundResult") return;
 
-  // show the round outcome
+  // clear previous texts
+  actionDesc.textContent = "";
+  localDesc.textContent  = "";
+
+  // show the high-level result
   roundResult.textContent = msg.result;
 
-  // apply rest/hunt/tie mechanics + food changes
+  // apply rest/hunt/tie logic
   if (msg.result.includes("rests")) {
     state.health = Math.min(100, state.health + 5);
     state.food  -= 5;
-    actionText.textContent = "You rested and regained 5 health, lost 5 pounds of food.";
+    actionDesc.textContent = "You rested: +5 health, –5 lbs food.";
   }
   else if (msg.result.includes("hunts")) {
-    // hunting branch: success +20, failure -10
+    // hunting cost + success or failure
+    // cost of going out: –10 lbs
+    // success: +20 lbs (net +10), failure: no gain
+    state.food = Math.max(0, state.food - 10);
     if (Math.random() < 0.5) {
       state.food += 20;
-      actionText.textContent = "You went hunting and found 20 lbs of food!";
+      actionDesc.textContent = "You went hunting and found 20 lbs of food! (+10 net)";
     } else {
-      state.food = Math.max(0, state.food - 10);
-      actionText.textContent = "You went hunting and found nothing (lost 10 lbs of food).";
+      actionDesc.textContent = "You went hunting and found nothing. (–10 lbs)";
     }
   }
-  else if (msg.result.includes("tie")) {
-    // tie: you choose your own event or get 15 food
+  else { // tie case
     state.food += 15;
-    actionText.textContent = "It was a tie—coin flip gave you 15 lbs of food.";
+    actionDesc.textContent = "Tie—coin flip gave you 15 lbs of food.";
   }
 
-  // advance day and update UI
+  // advance day
   state.day++;
   updateUI();
 
-  // local mishap
-  const evt = pickLocalEvent();
-  localText.textContent = "";
-  if (evt) {
-    evt.apply();
-    localText.textContent = evt.text;
+  // local event
+  const le = pickLocalEvent();
+  if (le) {
+    le.apply();
+    localDesc.textContent = le.text;
     updateUI();
   }
 
-  // disable buttons until next round
+  // lock buttons until next round
   restBtn.disabled = huntBtn.disabled = true;
 
-  // clear messages & re-enable after 3s
+  // clear & re-enable after 3 seconds
   setTimeout(() => {
     roundResult.textContent = "";
-    actionText.textContent  = "";
-    localText.textContent   = "";
+    actionDesc.textContent  = "";
+    localDesc.textContent   = "";
     restBtn.disabled = huntBtn.disabled = false;
   }, 3000);
 };
 
-// send a vote to AWS
+// --- send a vote ---
 function sendVote(vote) {
   if (socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ action: "sendVote", vote }));
@@ -126,5 +131,5 @@ function sendVote(vote) {
 restBtn.addEventListener("click", () => sendVote("rest"));
 huntBtn.addEventListener("click", () => sendVote("hunt"));
 
-// initial UI draw
+// initial render
 updateUI();
