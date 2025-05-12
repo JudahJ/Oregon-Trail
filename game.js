@@ -4,27 +4,27 @@
 const state = { day: 1, health: 100, food: 100 };
 
 // DOM references
-const day               = document.getElementById("day");
-const health            = document.getElementById("health");
-const food              = document.getElementById("food");
-const restBtn           = document.getElementById("restBtn");
-const huntBtn           = document.getElementById("huntBtn");
-const roundResult       = document.getElementById("roundResult");
-const actionDescription = document.getElementById("actionDescription");
-const localDescription  = document.getElementById("localEventDescription");
+const dayEl               = document.getElementById("day");
+const healthEl            = document.getElementById("health");
+const foodEl              = document.getElementById("food");
+const restBtn             = document.getElementById("restBtn");
+const huntBtn             = document.getElementById("huntBtn");
+const roundResultEl       = document.getElementById("roundResult");
+const actionDescriptionEl = document.getElementById("actionDescription");
+const localDescriptionEl  = document.getElementById("localEventDescription");
 
 // update the on‑screen stats
 function updateUI() {
-  day.textContent    = state.day;
-  health.textContent = state.health;
-  food.textContent   = state.food;
+  dayEl.textContent    = state.day;
+  healthEl.textContent = state.health;
+  foodEl.textContent   = state.food;
 
   if (state.health <= 0) {
-    roundResult.textContent = "You died!";
+    roundResultEl.textContent = "You died!";
     restBtn.disabled = huntBtn.disabled = true;
   }
   if (state.food <= 0) {
-    roundResult.textContent = "You starved!";
+    roundResultEl.textContent = "You starved!";
     restBtn.disabled = huntBtn.disabled = true;
   }
 }
@@ -67,31 +67,31 @@ socket.onmessage = ev => {
   if (msg.action !== "roundResult") return;
 
   // clear prior texts
-  actionDescription.textContent = "";
-  localDescription.textContent  = "";
+  actionDescriptionEl.textContent = "";
+  localDescriptionEl.textContent  = "";
 
   // display the round result
-  roundResult.textContent = msg.result;
+  roundResultEl.textContent = msg.result;
 
   // apply rest/hunt/tie logic
   if (msg.result.includes("rests")) {
     state.health = Math.min(100, state.health + 5);
     state.food   = Math.max(0, state.food - 5);
-    actionDescription.textContent = "You rested: +5 health, –5 lbs food.";
+    actionDescriptionEl.textContent = "You rested: +5 health, –5 lbs food.";
   }
   else if (msg.result.includes("hunts")) {
     // cost to hunt: –10 lbs
     state.food = Math.max(0, state.food - 10);
     if (Math.random() < 0.5) {
       state.food += 20;
-      actionDescription.textContent = "You went hunting and found 20 lbs of food!";
+      actionDescriptionEl.textContent = "You went hunting and found 20 lbs of food!";
     } else {
-      actionDescription.textContent = "You went hunting and found nothing (–10 lbs).";
+      actionDescriptionEl.textContent = "You went hunting and found nothing (–10 lbs).";
     }
   }
   else {
     state.food += 15;
-    actionDescription.textContent = "Tie—coin flip gave you 15 lbs of food.";
+    actionDescriptionEl.textContent = "Tie—coin flip gave you 15 lbs of food.";
   }
 
   // advance day
@@ -102,7 +102,7 @@ socket.onmessage = ev => {
   const evt = pickLocalEvent();
   if (evt) {
     evt.apply();
-    localDescription.textContent = evt.text;
+    localDescriptionEl.textContent = evt.text;
     updateUI();
   }
 
@@ -111,9 +111,9 @@ socket.onmessage = ev => {
 
   // clear & re‑enable after 3 s
   setTimeout(() => {
-    roundResult.textContent       = "";
-    actionDescription.textContent = "";
-    localDescription.textContent  = "";
+    roundResultEl.textContent       = "";
+    actionDescriptionEl.textContent = "";
+    localDescriptionEl.textContent  = "";
     restBtn.disabled = huntBtn.disabled = false;
   }, 3000);
 };
