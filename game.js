@@ -1,56 +1,43 @@
 // game.js
 
-// --- state ---
+// game state
 const state = { day: 1, health: 100, food: 100 };
 
-// --- element refs ---
-const dayEl        = document.getElementById("day");
-const healthEl     = document.getElementById("health");
-const foodEl       = document.getElementById("food");
-const restBtn      = document.getElementById("restBtn");
-const huntBtn      = document.getElementById("huntBtn");
-const roundResult  = document.getElementById("roundResult");
-const actionDesc   = document.getElementById("actionDescription");
-const localDesc    = document.getElementById("localEventDescription");
+// DOM references
+const dayEl               = document.getElementById("day");
+const healthEl            = document.getElementById("health");
+const foodEl              = document.getElementById("food");
+const restBtn             = document.getElementById("restBtn");
+const huntBtn             = document.getElementById("huntBtn");
+const roundResultEl       = document.getElementById("roundResult");
+// match this ID exactly:
+const actionDescriptionEl = document.getElementById("actionDescription");
+const localDescriptionEl  = document.getElementById("localEventDescription");
 
-// --- update the HUD ---
+// update the on‑screen stats
 function updateUI() {
   dayEl.textContent    = state.day;
   healthEl.textContent = state.health;
   foodEl.textContent   = state.food;
-
-  if (state.health <= 0) {
-    roundResult.textContent = "You died!";
-    restBtn.disabled = huntBtn.disabled = true;
-  }
-  if (state.food <= 0) {
-    roundResult.textContent = "You starved!";
-    restBtn.disabled = huntBtn.disabled = true;
-  }
 }
 
-// --- per-player mishaps ---
+// per‑player mishaps
 const localEvents = [
-  {
-    text:  "Sprained ankle! Lose 10 health.",
-    apply: () => { state.health = Math.max(0, state.health - 10); }
-  },
-  {
-    text:  "Fell ill! Lose 5 health and 5 food.",
-    apply: () => {
+  { text: "Sprained ankle! Lose 10 health.", apply: () => state.health = Math.max(0, state.health - 10) },
+  { text: "Fell ill! Lose 5 health and 5 food.", apply: () => {
       state.health = Math.max(0, state.health - 5);
       state.food   = Math.max(0, state.food   - 5);
     }
   }
 ];
 
-// --- 50% chance for a local event ---
+// 50% chance for a local event
 function pickLocalEvent() {
   if (Math.random() > 0.5) return null;
   return localEvents[Math.floor(Math.random() * localEvents.length)];
 }
 
-// --- open WebSocket ---
+// open WebSocket
 const socket = new WebSocket(
   "wss://kr3dp8jyic.execute-api.us-east-1.amazonaws.com/production"
 );
@@ -61,66 +48,64 @@ socket.onopen = () => {
 };
 socket.onerror = e => console.error("WebSocket error:", e);
 
-// --- handle server broadcast ---
+// handle server broadcast
 socket.onmessage = ev => {
   const msg = JSON.parse(ev.data);
   if (msg.action !== "roundResult") return;
 
-  // clear previous texts
-  actionDesc.textContent = "";
-  localDesc.textContent  = "";
+  // clear prior descriptions
+  actionDescriptionEl.textContent = "";
+  localDescriptionEl.textContent  = "";
 
-  // show the high-level result
-  roundResult.textContent = msg.result;
+  // display the round result
+  roundResultEl.textContent = msg.result;
 
-  // apply rest/hunt/tie logic
+  // apply rest/hunt/tie outcome
   if (msg.result.includes("rests")) {
-    state.health = Math.min(100, state.health + 5);
-    state.food  -= 5;
-    actionDesc.textContent = "You rested: +5 health, –5 lbs food.";
+    state.health += 5;
+    state.food   -= 5;
+    actionDescriptionEl.textContent = "You rested: +5 health, –5 lbs food.";
   }
   else if (msg.result.includes("hunts")) {
-    // hunting cost + success or failure
-    // cost of going out: –10 lbs
-    // success: +20 lbs (net +10), failure: no gain
+    // cost to hunt
     state.food = Math.max(0, state.food - 10);
     if (Math.random() < 0.5) {
       state.food += 20;
-      actionDesc.textContent = "You went hunting and found 20 lbs of food! (+10 net)";
+      actionDescriptionEl.textContent = "You went hunting and found 20 lbs of food!";
     } else {
-      actionDesc.textContent = "You went hunting and found nothing. (–10 lbs)";
+      actionDescriptionEl.textContent = "You went hunting and found nothing (–10 lbs).";
     }
   }
-  else { // tie case
+  else {
     state.food += 15;
-    actionDesc.textContent = "Tie—coin flip gave you 15 lbs of food.";
+    actionDescriptionEl.textContent = "Tie—coin flip gave you 15 lbs of food.";
   }
 
-  // advance day
+  // next day
   state.day++;
   updateUI();
 
   // local event
-  const le = pickLocalEvent();
-  if (le) {
-    le.apply();
-    localDesc.textContent = le.text;
+  const evt = pickLocalEvent();
+  if (evt) {
+    evt.apply();
+    localDescriptionEl.textContent = evt.text;
     updateUI();
   }
 
-  // lock buttons until next round
+  // disable until next round
   restBtn.disabled = huntBtn.disabled = true;
 
-  // clear & re-enable after 3 seconds
+  // clear and re‑enable after 3 s
   setTimeout(() => {
-    roundResult.textContent = "";
-    actionDesc.textContent  = "";
-    localDesc.textContent   = "";
+    roundResultEl.textContent       = "";
+    actionDescriptionEl.textContent = "";
+    localDescriptionEl.textContent  = "";
     restBtn.disabled = huntBtn.disabled = false;
   }, 3000);
 };
 
-// --- send a vote ---
+// send vote
 function sendVote(vote) {
   if (socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ action: "sendVote", vote }));
