@@ -3,7 +3,7 @@
 // game state
 const state = { day: 1, health: 100, food: 100 };
 
-// DOM references
+// Variables 
 const dayEl               = document.getElementById("day");
 const healthEl            = document.getElementById("health");
 const foodEl              = document.getElementById("food");
@@ -13,7 +13,7 @@ const roundResultEl       = document.getElementById("roundResult");
 const actionDescriptionEl = document.getElementById("actionDescription");
 const localDescriptionEl  = document.getElementById("localEventDescription");
 
-// update the on‑screen stats
+// update the  players' stats
 function updateUI() {
   dayEl.textContent    = state.day;
   healthEl.textContent = state.health;
@@ -29,7 +29,7 @@ function updateUI() {
   }
 }
 
-// per‑player mishaps
+// Player events
 const localEvents = [
   {
     text:  "Sprained ankle! Lose 10 health.",
@@ -61,19 +61,19 @@ socket.onopen = () => {
 };
 socket.onerror = e => console.error("WebSocket error:", e);
 
-// handle server broadcast
+// AWS sends a message
 socket.onmessage = ev => {
   const msg = JSON.parse(ev.data);
   if (msg.action !== "roundResult") return;
 
-  // clear prior texts
+  // clear texts
   actionDescriptionEl.textContent = "";
   localDescriptionEl.textContent  = "";
 
-  // display the round result
+  // show the round result
   roundResultEl.textContent = msg.result;
 
-  // apply rest/hunt/tie logic
+  // apply rest/hunt/tie 
   if (msg.result.includes("rests")) {
     state.health = Math.min(100, state.health + 5);
     state.food   = Math.max(0, state.food - 5);
@@ -94,7 +94,7 @@ socket.onmessage = ev => {
     actionDescriptionEl.textContent = "Tie—coin flip gave you 15 lbs of food.";
   }
 
-  // advance day
+  // next day
   state.day++;
   updateUI();
 
@@ -109,7 +109,7 @@ socket.onmessage = ev => {
   // disable until next round
   restBtn.disabled = huntBtn.disabled = true;
 
-  // clear & re‑enable after 3 s
+  // clear and re‑enable after 3 s
   setTimeout(() => {
     roundResultEl.textContent       = "";
     actionDescriptionEl.textContent = "";
@@ -129,5 +129,5 @@ function sendVote(vote) {
 restBtn.addEventListener("click", () => sendVote("rest"));
 huntBtn.addEventListener("click", () => sendVote("hunt"));
 
-// initial render
+// first status update
 updateUI();
