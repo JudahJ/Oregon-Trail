@@ -4,27 +4,40 @@
 const state = { day: 1, health: 100, food: 100 };
 
 // DOM references
-const dayEl               = document.getElementById("day");
-const healthEl            = document.getElementById("health");
-const foodEl              = document.getElementById("food");
-const restBtn             = document.getElementById("restBtn");
-const huntBtn             = document.getElementById("huntBtn");
-const roundResultEl       = document.getElementById("roundResult");
-// match this ID exactly:
-const actionDescriptionEl = document.getElementById("actionDescription");
-const localDescriptionEl  = document.getElementById("localEventDescription");
+const day               = document.getElementById("day");
+const health            = document.getElementById("health");
+const food              = document.getElementById("food");
+const restBtn           = document.getElementById("restBtn");
+const huntBtn           = document.getElementById("huntBtn");
+const roundResult       = document.getElementById("roundResult");
+const actionDescription = document.getElementById("actionDescription");
+const localDescription  = document.getElementById("localEventDescription");
 
 // update the on‑screen stats
 function updateUI() {
-  dayEl.textContent    = state.day;
-  healthEl.textContent = state.health;
-  foodEl.textContent   = state.food;
+  day.textContent    = state.day;
+  health.textContent = state.health;
+  food.textContent   = state.food;
+
+  if (state.health <= 0) {
+    roundResult.textContent = "You died!";
+    restBtn.disabled = huntBtn.disabled = true;
+  }
+  if (state.food <= 0) {
+    roundResult.textContent = "You starved!";
+    restBtn.disabled = huntBtn.disabled = true;
+  }
 }
 
 // per‑player mishaps
 const localEvents = [
-  { text: "Sprained ankle! Lose 10 health.", apply: () => state.health = Math.max(0, state.health - 10) },
-  { text: "Fell ill! Lose 5 health and 5 food.", apply: () => {
+  {
+    text:  "Sprained ankle! Lose 10 health.",
+    apply: () => { state.health = Math.max(0, state.health - 10); }
+  },
+  {
+    text:  "Fell ill! Lose 5 health and 5 food.",
+    apply: () => {
       state.health = Math.max(0, state.health - 5);
       state.food   = Math.max(0, state.food   - 5);
     }
@@ -53,35 +66,35 @@ socket.onmessage = ev => {
   const msg = JSON.parse(ev.data);
   if (msg.action !== "roundResult") return;
 
-  // clear prior descriptions
-  actionDescriptionEl.textContent = "";
-  localDescriptionEl.textContent  = "";
+  // clear prior texts
+  actionDescription.textContent = "";
+  localDescription.textContent  = "";
 
   // display the round result
-  roundResultEl.textContent = msg.result;
+  roundResult.textContent = msg.result;
 
-  // apply rest/hunt/tie outcome
+  // apply rest/hunt/tie logic
   if (msg.result.includes("rests")) {
-    state.health += 5;
-    state.food   -= 5;
-    actionDescriptionEl.textContent = "You rested: +5 health, –5 lbs food.";
+    state.health = Math.min(100, state.health + 5);
+    state.food   = Math.max(0, state.food - 5);
+    actionDescription.textContent = "You rested: +5 health, –5 lbs food.";
   }
   else if (msg.result.includes("hunts")) {
-    // cost to hunt
+    // cost to hunt: –10 lbs
     state.food = Math.max(0, state.food - 10);
     if (Math.random() < 0.5) {
       state.food += 20;
-      actionDescriptionEl.textContent = "You went hunting and found 20 lbs of food!";
+      actionDescription.textContent = "You went hunting and found 20 lbs of food!";
     } else {
-      actionDescriptionEl.textContent = "You went hunting and found nothing (–10 lbs).";
+      actionDescription.textContent = "You went hunting and found nothing (–10 lbs).";
     }
   }
   else {
     state.food += 15;
-    actionDescriptionEl.textContent = "Tie—coin flip gave you 15 lbs of food.";
+    actionDescription.textContent = "Tie—coin flip gave you 15 lbs of food.";
   }
 
-  // next day
+  // advance day
   state.day++;
   updateUI();
 
@@ -89,23 +102,23 @@ socket.onmessage = ev => {
   const evt = pickLocalEvent();
   if (evt) {
     evt.apply();
-    localDescriptionEl.textContent = evt.text;
+    localDescription.textContent = evt.text;
     updateUI();
   }
 
   // disable until next round
   restBtn.disabled = huntBtn.disabled = true;
 
-  // clear and re‑enable after 3 s
+  // clear & re‑enable after 3 s
   setTimeout(() => {
-    roundResultEl.textContent       = "";
-    actionDescriptionEl.textContent = "";
-    localDescriptionEl.textContent  = "";
+    roundResult.textContent       = "";
+    actionDescription.textContent = "";
+    localDescription.textContent  = "";
     restBtn.disabled = huntBtn.disabled = false;
   }, 3000);
 };
 
-// send vote
+// send a vote
 function sendVote(vote) {
   if (socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ action: "sendVote", vote }));
